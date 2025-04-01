@@ -10,8 +10,51 @@ import matplotlib.pyplot as plt
 # Metrics
 # fairness
 from fairlearn.metrics import demographic_parity_difference, equalized_odds_difference, equalized_odds_ratio, demographic_parity_ratio, MetricFrame
-from sklearn.metrics import ConfusionMatrixDisplay,classification_report,roc_auc_score, precision_recall_curve, RocCurveDisplay
+from sklearn.metrics import ConfusionMatrixDisplay,classification_report,roc_auc_score, RocCurveDisplay, recall_score, precision_score, f1_score, balanced_accuracy_score, confusion_matrix
 
+
+#-------------------------------------- PERFORMANCE and FAIRNESS METRICS ----------------------------------------#
+def specificity(y_true, y_pred):
+    tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
+    specificity = tn / (tn+fp)
+    return specificity
+def performFair(sensitive_feature, y_test, y_pred):
+
+    metric_frame = MetricFrame(
+        metrics={
+            "Recall or Sensitivity": recall_score,
+            #"Specificity": specificity,
+            "Precision": precision_score,
+            "F1 Score": f1_score,
+            "Balanced Accuracy": balanced_accuracy_score,
+        },
+        y_true=y_test,
+        y_pred=y_pred,
+        sensitive_features= sensitive_feature,
+    )
+    print('OVERALL METRICS')
+    print(metric_frame.overall)
+    print('METRIC BY GROUP')
+    print(metric_frame.by_group)
+    # print('CONFIDENCE INTERVALS')
+    # print(metric_frame.by_group_ci)
+    metric_frame.by_group.plot.bar(
+        subplots=True,
+        # x= ['Young Men', 'Young Women', 'Middle Aged Men', 'Middle Aged Women', 'Senior Men', 'Senior Women'],
+        layout=[4, 1],
+        legend=False,
+        figsize=[12, 8],
+        title="Accuracy and selection rate by group",
+    )
+    print('---------------------------------Both Sensitive Features Applied--------------------------------')
+    dpd = demographic_parity_difference(y_test, y_pred, sensitive_features=sensitive_feature)
+    dpr = demographic_parity_ratio(y_test, y_pred, sensitive_features=sensitive_feature)
+    print(f'The Demographic Parity Difference is: {dpd}')
+    print(f'The Demographic Parity Ratio is: {dpr}')
+    eod = equalized_odds_difference(y_test, y_pred, sensitive_features=sensitive_feature)
+    eor = equalized_odds_ratio(y_test, y_pred, sensitive_features=sensitive_feature)
+    print(f'The Equalized Odds Difference is: {eod}')
+    print(f'The Equalized Odds Ratio is: {eor}')
 
 
 #-------------------------------------- PERFORMANCE METRICS ----------------------------------------#
@@ -23,6 +66,7 @@ def metrics(y_test, y_pred):
     
     # Precision, Recall, F1 score
     print(classification_report(y_test,y_pred))
+    print(f'Specificity: ', {specificity(y_test, y_pred)})
     print(roc_auc_score(y_test,y_pred))
 
     # ROC
@@ -55,37 +99,9 @@ def fairness(x_test, y_test, y_pred):
     print(f'The Sex Equalized Odds Difference is: {sex_eod}')
     print(f'The Sex Equalized Odds Ratio is: {sex_eor}')
 
-def performFair(x_test, y_test, y_pred):
-    
-    sensitive_features = ['Age', 'Sex']
-    metric_frame = MetricFrame(
-        metrics={
-            "Area Under the curve": roc_auc_score,
-            "demographic_parity_difference": demographic_parity_difference,
-            "demographic_parity_ratio": demographic_parity_ratio,
-            "equalized_odds_difference": equalized_odds_difference,
-            "equalized_odds_ratio": equalized_odds_ratio,
-            "Classification Report": classification_report,
-        },
-        sensitive_features=x_test[sensitive_features],
-        y_true=y_test,
-        y_pred=y_pred,
-    )
-    print(metric_frame.overall)
-    print(metric_frame.by_group)
-    metric_frame.by_group.plot.bar(
-        subplots=True,
-        layout=[3, 1],
-        legend=False,
-        figsize=[12, 8],
-        title="Accuracy and selection rate by group",
-    )
-    print('---------------------------------Both Sensitive Features Applied--------------------------------')
-    dpd = demographic_parity_difference(y_test, y_pred, sensitive_features=x_test[sensitive_features])
-    dpr = demographic_parity_ratio(y_test, y_pred, sensitive_features=x_test[sensitive_features])
-    print(f'The Demographic Parity Difference is: {dpd}')
-    print(f'The Demographic Parity Ratio is: {dpr}')
-    eod = equalized_odds_difference(y_test, y_pred, sensitive_features=x_test[sensitive_features])
-    eor = equalized_odds_ratio(y_test, y_pred, sensitive_features=x_test[sensitive_features])
-    print(f'The Equalized Odds Difference is: {eod}')
-    print(f'The Equalized Odds Ratio is: {eor}')
+
+#-------------------------------------EXPLAINABILITY--------------------------------------#
+shap.initjs()
+def explain(explainer, X_test):
+    shap_values = explainer.shap_values(X_test)
+    shap.summary_plot(shap_values, X_test)

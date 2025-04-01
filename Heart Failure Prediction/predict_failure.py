@@ -12,6 +12,7 @@ Fairness metrics is being used to evaluate
 """
 
 #---------------------------------- IMPORTANT PACKAGES --------------------------------------------#
+from metrics import *
 print('-------------Importing Useful packages------------')
 import numpy as np
 import pandas as pd
