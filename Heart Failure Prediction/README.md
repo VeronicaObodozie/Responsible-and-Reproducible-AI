@@ -1,8 +1,7 @@
 # Heart Failure Prediction
 This is a project for BMEN619.
 
-Heart Failure is the current leading cause of death.
-
+Heart Failure is the current leading cause of death globally, and with AI increasingly being used in healthcare a responsible approach is necessary.
 This project looks to develop a model for predicting if an obersvation has heart disease or not in an effort to support early detection and prediction. The dataset selected curates 5 independent databases, and can be acced with a free account on Kaggle. This was a csv file gotten from Kaggle <https://www.kaggle.com/datasets/fedesoriano/heart-failure-prediction/data> containing 11 features to predict heart disease and their labels.
 1. Age (years)
 2. Sex (M: Male or F: Female)
@@ -15,14 +14,14 @@ This project looks to develop a model for predicting if an obersvation has heart
 9. ExerciseAngina: ecercise induced Angina ( Y yes, N no)
 10. Oldpeak: ST numeric measured in depression
 11. ST_Slope: slope of peak exercise ST segment (Up upsloping, Flat, Down)
-12 Heartdisease: output labels (1: heart disease, 0: Normal)
+12. Heartdisease: output labels (1: heart disease, 0: Normal)
 
 It uses Python as the main tool, with python packages pandas and sci-kit learn being pivotal for development. Fairlearn is a fairness tool based on scikit learn and will be used for evaluation.
 
-Note that although 8 models were tested, only 4 will be used for the project
+Note that although 7 models were tested, only 5 will be used for the project
 
 ## Data Exploration
-Data was gotten from Kaggle: https://www.kaggle.com/datasets/fedesoriano/heart-failure-prediction
+This folder contains a notebok detailing the steps taken to explore the data. Data was gotten from Kaggle: https://www.kaggle.com/datasets/fedesoriano/heart-failure-prediction 
 
 Understanding the general overview and characteristics of the model was important and as such, the exploratory data analysis was performed. This found no missing values, highlighted the breakdown of statistical data as well as the statistical analysis for numerical features.
 
@@ -138,10 +137,16 @@ Understanding the general overview and characteristics of the model was importan
 </table>
 </div>
 
-Patterns abd correlations were also highlighted.
+Patterns and correlations were also highlighted:
 ![Correlation](image-1.png)
 
-## Data Input and Preprocessing
+## Evaluation Criteria
+A notebook that was the foundation of subsequent code was used to get a better understanding of the metrics required for evaluation and how to apply fainess.
+
+## General Structure of predict_failure.py
+This is the main code for prediction. It includes the preprocessing, model development, evaluation, and explainability.
+
+### Data Input and Preprocessing
 This includes:
 * Removing outlier leaving 917 observations
 * Numerical data scaling
@@ -152,37 +157,43 @@ Stratified K-Fold cross-validation
 
 Maybe changing age data to ranged categories.
 
-## Experimental Design
+### Experimental Design
 Try:
 * Logistic Regression
 * SVC
-* XGradient boosting
 * Ada Boost
 * KNN
 * Random Forest
 * MLP Classifier
 * Gradient Boosting Classifier
 
-## Metrics for Evaluation
+### Metrics for Evaluation
 Both performance and fairness metrics were eveluated in this.
 
 Might be broken down into 4 subgroups accross sensitive demographic features of young/old and male/female
 
-### Performance
+#### Performance
 * Precision
 * Recall/sensitivity
 * F1-score
 
-### Fairness
+#### Fairness
 Based on age and sex sebsitive features:
 * Equal odds differennce and ratio.
 * Demographic parity difference and ratio.
 
-### Explainability
-* Lime for speed
+#### Explainability
 * shap is good for understanding the global importane (https://shap.readthedocs.io/en/latest/example_notebooks/tabular_examples/model_agnostic/Diabetes%20regression.html)
 https://www.datacamp.com/tutorial/explainable-ai-understanding-and-trusting-machine-learning-models
-
-
 Using python's SHAP package to test the understand the model a bit more. Makes it more explainable using Shapley values
 
+## fairness Considerations
+The biasMitigation.py code and fairnessApplication notebooks were used extensively in the analysis and choice of model. It implemented the general structure along with some bias mitigation techniques:
+1. In and Post processing using Exponential gradient and Threshold Optimizer
+2. Pre processing using Corellation Remover.
+
+## References
+A lot of help was gotten from Kaggle notebooks, fairlearn resources, and stackoverflow. Links can be found in the last cell of the Notebooks.
+
+## Acknowledgements
+This was a project implemented for a grade at UCalgary's Responsible and Reproducible AI, guidance from the professors and guest lecturers were indispensable. Grateful to my sister who brought a medical perspective to better understand the data.

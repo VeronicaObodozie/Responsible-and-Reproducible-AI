@@ -12,18 +12,19 @@ import matplotlib.pyplot as plt
 from fairlearn.metrics import demographic_parity_difference, equalized_odds_difference, equalized_odds_ratio, demographic_parity_ratio, MetricFrame
 from sklearn.metrics import ConfusionMatrixDisplay,classification_report,roc_auc_score, RocCurveDisplay, recall_score, precision_score, f1_score, balanced_accuracy_score, confusion_matrix
 
+import shap
 
 #-------------------------------------- PERFORMANCE and FAIRNESS METRICS ----------------------------------------#
 def specificity(y_true, y_pred):
-    tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
     specificity = tn / (tn+fp)
     return specificity
+
 def performFair(sensitive_feature, y_test, y_pred):
 
     metric_frame = MetricFrame(
         metrics={
             "Recall or Sensitivity": recall_score,
-            #"Specificity": specificity,
             "Precision": precision_score,
             "F1 Score": f1_score,
             "Balanced Accuracy": balanced_accuracy_score,
@@ -78,7 +79,6 @@ def metrics(y_test, y_pred):
 def fairness(x_test, y_test, y_pred):
     age_sensitive= x_test['Age']
     sex_sensitive = x_test['Sex']
-    sensitive_features = ['Age', 'Sex']
     # Demographic Parity
     age_dpd = demographic_parity_difference(y_test, y_pred, sensitive_features=age_sensitive)
     sex_dpd = demographic_parity_difference(y_test, y_pred, sensitive_features=sex_sensitive)
@@ -101,7 +101,8 @@ def fairness(x_test, y_test, y_pred):
 
 
 #-------------------------------------EXPLAINABILITY--------------------------------------#
-shap.initjs()
-def explain(explainer, X_test):
+def explain(classifier, x_dev, X_test):
+    explainer = shap.Explainer(classifier.predict, x_dev)
     shap_values = explainer.shap_values(X_test)
     shap.summary_plot(shap_values, X_test)
+    shap.summary_plot(shap_values, X_test, plot_type="bar", class_names= classifier.classes_)

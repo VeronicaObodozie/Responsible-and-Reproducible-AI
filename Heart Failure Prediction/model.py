@@ -1,4 +1,5 @@
 #---------------------------------- IMPORTANT PACKAGES --------------------------------------------#
+from metrics import *
 print('-------------Importing Useful packages------------')
 import numpy as np
 import pandas as pd
@@ -32,10 +33,114 @@ from fairlearn.reductions import ExponentiatedGradient, DemographicParity
 # Explainability
 import shap
 
+#-------------------------------------- Base Model ----------------------------------------#
 
-#-------------------------------------- Model ----------------------------------------#
+#-------------------------------------- Base model with no in or post processing mitigation methods  ----------------------------------------#
 # in and post process mitiagation techniques
 def model(classifier, x_dev, x_test, y_dev, y_test):
+    kf=StratifiedKFold(n_splits=9)
+    for fold , (train,validate) in enumerate(kf.split(X=x_dev,y=y_dev)):
+        
+        X_train=x_dev.iloc[train]
+        y_train=y_dev.iloc[train]
+        
+        X_valid=x_dev.iloc[validate]
+        y_valid=y_dev.iloc[validate]
+        
+        classifier.fit(X_train,y_train)
+        
+        y_pred=classifier.predict(X_valid)
+        print(f"The fold is : {fold} : ")
+        print(classification_report(y_valid,y_pred))
+        acc=roc_auc_score(y_valid,y_pred)
+        print(f"The accuracy for Fold {fold+1} : {acc}")
+
+        pass
+    print('-----------------------Base Model-------------------------')
+    y_pred = classifier.predict(x_test)
+    y_t = y_test.to_numpy()
+    performFair(pd.DataFrame(x_test, columns=["Age", "Sex"]), y_t, y_pred)
+    metrics(y_test, y_pred)
+    fairness(x_test, y_test, y_pred)
+    return classifier, y_pred
+    
+#--------------------------------------------------------------------------------------------------------#
+
+
+#-------------------------------------- Correlation Model ----------------------------------------#
+# pre processing mtigation techniques
+def modelpre(classifier, x_dev, x_test, y_dev, y_test, xt):
+    kf=StratifiedKFold(n_splits=9)
+    for fold , (train,validate) in enumerate(kf.split(X=x_dev,y=y_dev)):
+        
+        X_train=x_dev.iloc[train]
+        y_train=y_dev.iloc[train]
+        
+        X_valid=x_dev.iloc[validate]
+        y_valid=y_dev.iloc[validate]
+        
+        classifier.fit(X_train,y_train)
+        
+        y_pred=classifier.predict(X_valid)
+        print(f"The fold is : {fold} : ")
+        print(classification_report(y_valid,y_pred))
+        acc=roc_auc_score(y_valid,y_pred)
+        print(f"The accuracy for Fold {fold+1} : {acc}")
+        pass
+    print('-----------------------Base Model-------------------------')
+    y_pred = classifier.predict(x_test)
+    #performFair(x_test, y_test, y_pred)
+    metrics(y_test, y_pred)
+    fairness(xt, y_test, y_pred)
+    return classifier, y_pred
+    
+#--------------------------------------------------------------------------------------------------------#
+
+
+
+#-------------------------------------- Bias Mitigation Model ----------------------------------------#
+# Model Estimator
+def modelEstimator(classifier, x_train, y_train, x_test):
+    sensitive_features = ['Age', 'Sex']
+    # Define a new ML estimator that optimizes for fairness
+    fair_estimator = ExponentiatedGradient(
+        estimator=classifier,  # Your original ML model
+        constraints=DemographicParity(),
+        eps=0.1  # Fairness constraint violation tolerance
+    )
+
+    # Train the fair model
+    fair_estimator.fit(
+        x_train,
+        y_train,
+        sensitive_features= np.array(pd.DataFrame(x_train, columns=sensitive_features))
+    )
+
+    # POST PROCESSING
+
+    # Create a threshold optimizer
+    threshold_optimizer = ThresholdOptimizer(
+        estimator=fair_estimator,
+        constraints="demographic_parity",
+        prefit=True
+    )
+
+    # Fit the optimizer
+    threshold_optimizer.fit(
+        x_train, y_train,
+        sensitive_features= np.array(pd.DataFrame(x_train, columns=sensitive_features))
+    )
+
+    # Get fair predictions
+    fair_predictions = threshold_optimizer.predict(
+        x_test,
+        sensitive_features= np.array(pd.DataFrame(x_test, columns=sensitive_features))
+    )
+    return threshold_optimizer, fair_predictions
+
+
+# in and post process mitiagation techniques
+def modelBiasMitigation(classifier, x_dev, x_test, y_dev, y_test):
     kf=StratifiedKFold(n_splits=9)
     for fold , (train,validate) in enumerate(kf.split(X=x_dev,y=y_dev)):
         
@@ -64,40 +169,12 @@ def model(classifier, x_dev, x_test, y_dev, y_test):
     metrics(y_test, y_pred)
     # fairness(x_test, y_test, y_pred)
     print('-----------------------Fair Model-------------------------')
+    sensitive_features = ['Age', 'Sex']
     fair_pred = fair_model.predict(x_test, sensitive_features=x_test[sensitive_features])
     #performFair(x_test, y_test, y_pred)
     performFair(pd.DataFrame(x_test, columns=["Age", "Sex"]), y_t, fair_pred)
     metrics(y_test, fair_pred)
     # fairness(x_test, y_test, fair_pred)
     return classifier, y_pred, fair_pred, fair_model
-    
-#--------------------------------------------------------------------------------------------------------#
-
-#-------------------------------------- Correlation Model ----------------------------------------#
-# pre processing mtigation techniques
-def modelpre(classifier, x_dev, x_test, y_dev, y_test, xt):
-    kf=StratifiedKFold(n_splits=9)
-    for fold , (train,validate) in enumerate(kf.split(X=x_dev,y=y_dev)):
-        
-        X_train=x_dev.iloc[train]
-        y_train=y_dev.iloc[train]
-        
-        X_valid=x_dev.iloc[validate]
-        y_valid=y_dev.iloc[validate]
-        
-        classifier.fit(X_train,y_train)
-        
-        y_pred=classifier.predict(X_valid)
-        print(f"The fold is : {fold} : ")
-        print(classification_report(y_valid,y_pred))
-        acc=roc_auc_score(y_valid,y_pred)
-        print(f"The accuracy for Fold {fold+1} : {acc}")
-        pass
-    print('-----------------------Base Model-------------------------')
-    y_pred = classifier.predict(x_test)
-    #performFair(x_test, y_test, y_pred)
-    metrics(y_test, y_pred)
-    fairness(xt, y_test, y_pred)
-    return classifier, y_pred
     
 #--------------------------------------------------------------------------------------------------------#
